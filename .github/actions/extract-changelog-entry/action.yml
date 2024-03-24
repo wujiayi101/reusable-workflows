@@ -1,0 +1,30 @@
+name: Extract changelog entry
+description: Extract changelog entry from PR notes
+
+runs:
+  using: composite
+  steps:
+    - name: Extract changelog entry
+      uses: actions/github-script@v6.4.1
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const { data: prInfo } = await github.rest.pulls.get({
+            owner, repo,
+            pull_number: context.issue.number,
+          });
+          console.log('Found PR body:|');
+          console.log(prInfo.body);
+          if (null == prInfo.body)
+            throw `PR Description MUST not be null`;
+
+          const changelogEntry = ((prInfo.body
+            .split(/^#+ ?/m)
+            .find(x => x.startsWith('Changelog'))
+            || '').split(/\n|\r\n/m).slice(1).join("\r\n") || '').trim();
+
+          const { writeFile } = require('fs').promises;
+          await writeFile('output/changelog.md', `
+          * PR [#${ prInfo.number }](${ prInfo.html_url }) - ${ prInfo.title }
+          ${changelogEntry}
+          `.trimLeft(), { encoding: 'utf-8' })

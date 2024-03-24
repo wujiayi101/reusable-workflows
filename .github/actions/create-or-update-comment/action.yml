@@ -1,0 +1,68 @@
+name: Create or Update Comment
+description: Create or update an existing comment in a PR
+inputs:
+  key:
+    description: |
+      Identifier of the comment. If the same identifier is found in a comment, the comment will be updated.
+  body:
+    description: |
+      Body of a comment
+  comment_on_merged_pr:
+    description: |
+      Comment on merged PR
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Create or Update Comment
+      id: create-or-update-comment
+      if: github.event_name == 'pull_request' || inputs.comment_on_merged_pr
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const lookUpPrNumberByCommit = async () => {
+            const res = (await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: ${{ toJson(github.sha) }}
+            })).data
+
+            if (res.length < 1) {
+              console.error("Unable to retrieve PR number")
+            }
+
+            return res[0].number
+          }
+
+          const prNumber = context.eventName == 'push'
+            ? await lookUpPrNumberByCommit()
+            : context.issue.number;
+
+          const commentHeader = `<!-- ${{ inputs.key }} -->\n`
+          const commentBody = ${{ toJSON(inputs.body) }};
+          const comment = commentHeader + commentBody;
+
+          const existingComments = (await github.rest.issues.listComments({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+          })).data
+
+          const matchingCommentId = existingComments.find(e => e.body?.startsWith(commentHeader))?.id
+
+          if (matchingCommentId) {
+              github.rest.issues.updateComment({
+                  comment_id: matchingCommentId,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+              })
+          } else {
+              github.rest.issues.createComment({
+                  issue_number: prNumber,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+              })
+          }
