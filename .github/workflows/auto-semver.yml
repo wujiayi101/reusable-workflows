@@ -96,7 +96,7 @@ jobs:
           echo '${{ steps.new-version.outputs.result }}' > output/new-version.txt
 
       - name: Extract changelog entry
-        uses: wujiayi101/reusable_workflows/.github/actions/extract-changelog-entry@actions-extract-changelog-entry/1.0.0
+        uses: wujiayi101/reusable-workflows/.github/actions/extract-changelog-entry@actions-extract-changelog-entry/1.0.0
 
       - name: Upload result artifacts
         uses: actions/upload-artifact@v3.1.3
@@ -166,53 +166,3 @@ jobs:
               console.log('Deleting previous PR comment from', comment.created_at);
               await github.issues.deleteComment({ comment_id: comment.id, owner, repo });
             }
-
-  trigger-release:
-    needs: [detect, plan]
-    if: needs.detect.outputs.is-merge-event == 'true'
-    runs-on: ubuntu-latest
-    name: "Dispatch release event"
-    steps:
-      - uses: actions/download-artifact@v3.0.2
-        with:
-          path: outputs
-
-      - name: Combine version information
-        id: extract-releases
-        uses: actions/github-script@v6.4.1
-        with:
-          script: |
-            const { readdir, readFile } = require('fs').promises;
-            const utf8 = { encoding: 'utf-8' };
-            const readText = (name) => readFile(name, utf8).then(x => x.trim());
-
-            const directories = await readdir('outputs', { withFileTypes: true });
-            return await Promise.all(directories
-              .filter(x => x.isDirectory())
-              .map(async folder => ({
-                module: folder.name,
-                prevVersion: await readText(`outputs/${folder.name}/previous-version.txt`),
-                newVersion: await readText(`outputs/${folder.name}/new-version.txt`),
-                changelog: await readText(`outputs/${folder.name}/changelog.md`),
-              })));
-
-      - name: Dispatch monorepo_release event
-        uses: actions/github-script@v4.2.0
-        env:
-          RELEASE_LIST: "${{ steps.extract-releases.outputs.result }}"
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const payload = {
-              run_id: "${{ github.run_id }}",
-              sha: context.sha,
-              releases: JSON.parse(process.env.RELEASE_LIST),
-            };
-            console.log('Event payload:', JSON.stringify(payload, null, 2));
-
-            const { owner, repo } = context.repo;
-            await github.repos.createDispatchEvent({
-              owner, repo,
-              event_type: 'module_release',
-              client_payload: payload,
-            });
