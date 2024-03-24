@@ -96,7 +96,7 @@ jobs:
           echo '${{ steps.new-version.outputs.result }}' > output/new-version.txt
 
       - name: Extract changelog entry
-        uses: wujiayi101/reusable-workflows/.github/actions/extract-changelog-entry@actions-extract-changelog-entry/1.0.0
+        uses: wujiayi101/reusable-workflows/.github/actions/extract-changelog-entry@1.1.0
 
       - name: Upload result artifacts
         uses: actions/upload-artifact@v3.1.3
