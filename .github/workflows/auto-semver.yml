@@ -179,7 +179,9 @@ jobs:
         uses: actions/github-script@v6.4.1
         with:
           script: |
-            const { owner, repo } = context.repo;
-            const sha = context.sha;
-            const ref = `refs/tags/v0.0.1`;
-            await github.git.createRef({ owner, repo, ref, sha });
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ steps.new-version.outputs.result }}',
+              sha: context.sha
+            })
