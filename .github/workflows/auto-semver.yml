@@ -98,6 +98,13 @@ jobs:
       - name: Extract changelog entry
         uses: wujiayi101/reusable-workflows/.github/actions/extract-changelog-entry@v1.1.0
 
+      - name: Upload result artifacts
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: "release"
+          path: output
+          retention-days: 5
+
   comment:
     needs: [detect, plan]
     if: needs.detect.outputs.is-merge-event == 'false'
@@ -107,6 +114,7 @@ jobs:
       - uses: actions/download-artifact@v3.0.2
         with:
           path: outputs
+
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: outputs
@@ -172,6 +180,6 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const sha = context.sha
-            const ref = `refs/tags/${{ steps.new-version.outputs.result }}`
-            await github.git.createRef({ owner, repo, ref, sha })
+            const sha = context.sha;
+            const ref = `refs/tags/${{ steps.new-version.outputs.result }}`;
+            await github.git.createRef({ owner, repo, ref, sha });
