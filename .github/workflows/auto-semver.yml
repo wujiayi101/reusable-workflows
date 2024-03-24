@@ -181,5 +181,5 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const sha = context.sha;
-            const ref = `refs/tags/${{ steps.new-version.outputs.result }}`;
+            const ref = `refs/tags/v0.0.1`;
             await github.git.createRef({ owner, repo, ref, sha });
