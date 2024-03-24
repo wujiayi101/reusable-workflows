@@ -36,6 +36,8 @@ jobs:
     needs: detect
     if: needs.detect.outputs.release-type != 'no-release'
     runs-on: ubuntu-latest
+    outputs:
+        new-version: ${{ steps.new-version.outputs.result }}
     name: "Gather Info"
     steps:
       - name: Detect previous version number
@@ -182,6 +184,6 @@ jobs:
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'refs/tags/${{ steps.new-version.outputs.result }}',
+              ref: 'refs/tags/${{ needs.plan.outputs.new-version }}',
               sha: context.sha
             })
